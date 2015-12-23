@@ -1,2 +1,2 @@
 # hello-world
-My hello to the world
+Absolutly just a hello world. Nothing more.
