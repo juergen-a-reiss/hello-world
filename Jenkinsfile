@@ -48,7 +48,7 @@ pipeline {
 
         }
 
-        stage('DEVMASTER') {
+        stage('DEVNONMASTER') {
             when {
                 expression {
                     return env.BRANCH_NAME != 'master'
