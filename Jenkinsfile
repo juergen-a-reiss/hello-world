@@ -10,7 +10,7 @@ pipeline {
         //Use Pipeline Utility Steps plugin to read information from pom.xml into env variables
         IMAGE = readMavenPom().getArtifactId()
         VERSION = readMavenPom().getVersion()
-        CONTAINER = "${IMAGE} +1"
+        CONTAINER = "${IMAGE}-${GIT_BRANCH}-${VERSION}-${currentBuild.startTimeInMillis}-${GIT_COMMIT}"
     }
 
     options {
@@ -20,10 +20,6 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                // Get some code from a GitHub repository
-                //git 'https://github.com/juergen-a-reiss/hello-world.git'
-                //git rev-parse HEAD ${GIT_COMMIT}
-
                 // Run Maven on a Unix agent.
                 sh "mvn clean package"
 
@@ -42,11 +38,33 @@ pipeline {
             }
         }
 
+        stage('DEVMASTER') {
+            when {
+                branch 'master'
+            }
+            steps {
+                echo "Automatically deploy to DEV if master"
+            }
+
+        }
+
+        stage('DEVMASTER') {
+            when {
+                expression {
+                    return env.BRANCH_NAME != 'master'
+                }
+            }
+            steps {
+                echo "Manually deploy to DEV if not master"
+            }
+
+        }
+
         stage('QA') {
             steps {
                 timeout(time: 1, unit: 'MINUTES') {
                     script {
-                        env.QA = input message: 'Deploy to QA?', ok: 'Release to QA!', submitter: 'jreiss', submitterParameter: "submitter",
+                        env.QA = input message: 'Deploy to QA?', ok: 'Release to QA!', submitter: 'jreiss'  , submitterParameter: "submitter",
                                 parameters: [choice(name: 'RELEASE_SCOPE', choices: 'patch\nminor\nmajor', description: 'What is the release scope?')]
                     }
                     echo "scope: ${env.QA}"
@@ -54,21 +72,12 @@ pipeline {
             }
 
         }
-
-        stage('DEV') {
-            steps {
-                echo "Deploy to DEV ${VERSION} "
-            }
-
-        }
-
-
     }
 
     post {
         aborted {
             sh 'printenv'
-            echo "TODO: Remove container ${CONTAINER} and commit  ${GIT_COMMIT}"
+            echo "TODO: Remove container ${CONTAINER}"
         }
     }
 
